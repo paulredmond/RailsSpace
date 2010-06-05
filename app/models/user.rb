@@ -13,6 +13,8 @@ class User < ActiveRecord::Base
   PASSWORD_SIZE = 10
   EMAIL_SIZE = 30
 
+  validates_uniqueness_of :screen_name, :email
+
   validates_length_of :screen_name, :within => SCREEN_NAME_RANGE
   validates_length_of :password, :within => PASSWORD_RANGE
   validates_length_of :email, :maximum => EMAIL_MAX_LENGTH
