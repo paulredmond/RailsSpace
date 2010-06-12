@@ -224,3 +224,7 @@ table.users tr.odd {
 	margin: 0;
 	padding: 0.5em;
 }
+#request_debug_info .debug_dump {
+	border-top: 0;
+	line-height: 1.75em;
+}
