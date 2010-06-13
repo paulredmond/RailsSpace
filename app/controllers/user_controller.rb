@@ -1,3 +1,4 @@
+require 'digest/sha1'
 class UserController < ApplicationController
   
   include ApplicationHelper
@@ -25,12 +26,27 @@ class UserController < ApplicationController
   
   def login
     @title = "Log in to RailsSpace"
-    if param_posted?(:user)
+    if request.get?
+      @user = User.new(:remember_me => cookies[:remember_me] || "0")
+    elsif param_posted?(:user)
       @user = User.new(params[:user])
       user = User.find_by_screen_name_and_password(@user.screen_name, @user.password)
       
       if user
         user.login!(session)
+        if @user.remember_me == "1"
+          cookies[:remember_me] = { :value => "1",
+                                    :expires => 10.years.from_now }
+          user.authorization_token = Digest::SHA1.hexdigest("#{user.screen_name}:#{user.password}")
+          user.save!
+          cookies[:authorization_token] = {
+            :value => user.authorization_token,
+            :expires => 10.years.from_now
+          }
+        else
+          cookies.delete(:remember_me)
+          cookies.delete(:authorization_token)
+        end
         flash[:notice] = "User #{user.screen_name} logged in!"
         redirect_to_forwarding_url
       else
@@ -42,7 +58,7 @@ class UserController < ApplicationController
   end
   
   def logout
-    User.logout!(session)
+    User.logout!(session, cookies)
     flash[:notice] = "Logged out"
     redirect_to :action => 'index', :controller => 'site'
   end

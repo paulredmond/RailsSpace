@@ -1,4 +1,6 @@
 class User < ActiveRecord::Base
+  attr_accessor :remember_me
+  
   # Max & min lengths for all fields
   SCREEN_NAME_MIN_LENGTH = 4
   SCREEN_NAME_MAX_LENGTH = 20
@@ -31,8 +33,9 @@ class User < ActiveRecord::Base
     session[:user_id] = self.id
   end
   
-  def self.logout!(session)
+  def self.logout!(session, cookies)
     session[:user_id] = nil
+    cookies.delete :authorization_token
   end
   
   def clear_password!
