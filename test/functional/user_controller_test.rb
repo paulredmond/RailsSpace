@@ -5,7 +5,7 @@ require 'user_controller'
 class UserController; def rescue_action(e) raise e end; end
 
 class UserControllerTest < Test::Unit::TestCase
-  
+  include ApplicationHelper
   fixtures :users
   
   def setup
@@ -61,7 +61,7 @@ class UserControllerTest < Test::Unit::TestCase
     assert_equal "User #{new_user.screen_name} created!", flash[:notice]
     assert_redirected_to :action => 'index'
     # Make sure user is logged in properly.
-    assert_not_nil session[:user_id]
+    assert logged_in?
     assert_equal user.id, session[:user_id]
   end
   
@@ -90,7 +90,7 @@ class UserControllerTest < Test::Unit::TestCase
                                          :value => 'anoyes@example,com' },
                         :parent => error_div
     assert_tag 'input', :attributes => { :name => 'user[password]',
-                                         :value => 'sun' },
+                                         :value => nil },
                         :parent => error_div
   end
   
@@ -120,7 +120,7 @@ class UserControllerTest < Test::Unit::TestCase
   # Test login with a valid screen name
   def test_login_success
     try_to_login @valid_user
-    assert_not_nil session[:user_id]
+    assert logged_in?
     # assert_equal(expected, actual)
     assert_equal @valid_user.id, session[:user_id]
     assert_equal "User #{@valid_user.screen_name} logged in!", flash[:notice]
@@ -155,12 +155,12 @@ class UserControllerTest < Test::Unit::TestCase
   
   def test_logout
     try_to_login(@valid_user)
-    assert_not_nil session[:user_id]
+    assert logged_in?
     get :logout
     assert_response :redirect
     assert_redirected_to :action => 'index', :controller => 'site'
     assert_equal "Logged out", flash[:notice]
-    assert_nil session[:user_id]
+    assert !logged_in?
   end
   
   # Test the navigation menu after login.
@@ -190,6 +190,21 @@ class UserControllerTest < Test::Unit::TestCase
     assert_template 'index'
   end
   
+  # Test forward back to protected page after login.
+  def test_login_friendly_url_forwarding
+    user = { :screen_name => @valid_user.screen_name,
+             :password => @valid_user.password }
+             friendly_url_forwarding_aux(:login, :index, user)
+  end
+  
+  # Test forward back to protected page after register.
+  def test_register_friendly_url_forwarding
+    user = { :screen_name => 'new_screen_name',
+             :email       => 'valid@example.com',
+             :password    => 'long_enough_password' }
+    friendly_url_forwarding_aux(:register, :index, user)
+  end
+  
   private
   
   # Try to log a user in using the login action
@@ -201,5 +216,16 @@ class UserControllerTest < Test::Unit::TestCase
   # Authorize a user
   def authorize(user)
     @request.session[:user_id] = user.id
+  end
+  
+  def friendly_url_forwarding_aux(test_page, protected_page, user)
+    get protected_page
+    assert_response :redirect
+    assert_redirected_to :action => 'login'
+    post test_page, :user => user
+    assert_response :redirect
+    assert_redirected_to :action => protected_page
+    # Make sure that forwarding url has been cleared.
+    assert_nil session[:protected_page]
   end
 end
