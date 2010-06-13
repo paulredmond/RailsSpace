@@ -51,9 +51,20 @@ class User < ActiveRecord::Base
     self.authorization_token = unique_identifier
     save!
     cookies[:authorization_token] = {
-      :value   => self.authorization_token,
+      :value   => authorization_token,
       :expires => cookie_expiration
     }
+  end
+  
+  # Forget a user's login status
+  def forget!(cookies)
+    cookies.delete(:remember_me)
+    cookies.delete(:authorization_token)
+  end
+  
+  # Return true if the user wants the login status remembered.
+  def remember_me?
+    remember_me == "1"
   end
   
   private
